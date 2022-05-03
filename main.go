@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"github.com/urfave/negroni"
 )
 
 func main() {
@@ -14,9 +15,23 @@ func main() {
 		port = "3000"
 	}
 	
-		
-	http.HandleFunc("/", ShowVideos)
-	http.ListenAndServe(":" + port, nil)
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", ShowVideos)
+	
+	n := negroni.New()
+	n.UseHandler(mux)
+	n.Use(negroni.HandlerFunc(LogRequest))
+	
+	http.ListenAndServe(":" + port, n)
+}
+
+func LogRequest(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
+	log.Println("Request: ", r.URL)
+	log.Println("Headers: ")
+	for k, v := range r.Header {
+		log.Println(k, ": ", v)
+	}
+	next(w, r)
 }
 
 func ShowVideos(w http.ResponseWriter, r *http.Request) {
